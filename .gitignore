@@ -1,0 +1,7 @@
+node_modules/
+.venv/
+data/audio/*.mp3
+data/audio/*.json
+data/audio/*.part
+*.log
+.DS_Store

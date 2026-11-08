@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dionysus • Облачная Библиотека Аудиокниг (GCS + Offline Player)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Navigation & Telemetry Header -->
+    <header class="top-header">
+      <div class="brand-block">
+        <div class="brand-logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+            <path d="M9 7h6M9 11h4" />
+          </svg>
+        </div>
+        <div>
+          <div class="brand-eyebrow">GOOGLE CLOUD STORAGE (S3) • OFFLINE-FIRST AUDIOBOOK VAULT</div>
+          <h1 class="brand-title">Чтение | Аудиокниги <span class="brand-sub">Dionysus Collection</span></h1>
+        </div>
+      </div>
+
+      <div class="header-search">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input
+          id="searchInput"
+          type="search"
+          placeholder="Поиск по названию рассказа или автору (Брэдбери, Кафка, Борхес, Довлатов...)"
+          autocomplete="off"
+        />
+        <button id="clearSearchBtn" class="icon-btn hidden" title="Очистить поиск">✕</button>
+      </div>
+
+      <div class="header-pills">
+        <button id="openQueueDrawerBtn" class="status-pill queue-pill" title="Очередь последовательного скачивания и синхронизации с Google Cloud Storage">
+          <span class="pulse-dot" id="workerPulseDot"></span>
+          <div class="pill-text">
+            <span class="pill-label">MP3 Очередь (1-за-1)</span>
+            <span class="pill-value" id="headerLocalCount">32 / 452 готово</span>
+          </div>
+        </button>
+
+        <button id="openCloudDrawerBtn" class="status-pill gcs-pill" title="Статус бакета Google Cloud Storage (S3)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+          </svg>
+          <div class="pill-text">
+            <span class="pill-label">Google Cloud S3</span>
+            <span class="pill-value" id="headerGcsStatus">Проверка...</span>
+          </div>
+        </button>
+
+        <button id="openOfflineModalBtn" class="status-pill offline-pill" title="Локальное хранилище браузера (IndexedDB + localStorage)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <div class="pill-text">
+            <span class="pill-label">Память браузера</span>
+            <span class="pill-value" id="headerOfflineCount">0 книг (0 МБ)</span>
+          </div>
+        </button>
+      </div>
+    </header>
+
+    <!-- Live Sequential Download Banner -->
+    <section class="live-queue-banner" id="liveQueueBanner">
+      <div class="queue-banner-left">
+        <span class="badge-live" id="queueStageBadge">СКАЧИВАНИЕ 1-ЗА-1</span>
+        <span class="queue-current-title" id="queueCurrentTitle">Инициализация очереди...</span>
+      </div>
+      <div class="queue-banner-center">
+        <div class="queue-progress-track">
+          <div class="queue-progress-fill" id="queueProgressFill" style="width: 0%"></div>
+        </div>
+        <span class="queue-metrics-mono" id="queueMetricsMono">0%</span>
+      </div>
+      <div class="queue-banner-actions">
+        <button id="toggleQueuePauseBtn" class="btn-subtle btn-sm">Пауза очереди</button>
+        <button id="saveAllReadyOfflineBtn" class="btn-accent-outline btn-sm" title="Сохранить все готовые MP3 в локальную память браузера (IndexedDB) для прослушивания без интернета">
+          💾 Сохранить готовые в браузер
+        </button>
+      </div>
+    </section>
+
+    <!-- Filter & Toolbar Section -->
+    <section class="library-toolbar">
+      <div class="filter-tabs" role="tablist">
+        <button class="filter-tab active" data-filter="all">Все книги <span class="tab-count" id="countAll">452</span></button>
+        <button class="filter-tab" data-filter="ready">Готовые MP3 <span class="tab-count" id="countReady">0</span></button>
+        <button class="filter-tab" data-filter="offline">В памяти браузера <span class="tab-count" id="countOffline">0</span></button>
+        <button class="filter-tab" data-filter="in_progress">Слушаю сейчас <span class="tab-count" id="countInProgress">0</span></button>
+        <button class="filter-tab" data-filter="bookmarked">С закладками <span class="tab-count" id="countBookmarked">0</span></button>
+        <button class="filter-tab" data-filter="completed">Прослушано ✓ <span class="tab-count" id="countCompleted">0</span></button>
+      </div>
+
+      <div class="toolbar-right">
+        <label class="select-label">
+          <span>Обложки:</span>
+          <select id="coverModeSelect" class="toolbar-select">
+            <option value="hybrid">Оригиналы + Иллюстрации</option>
+            <option value="generated">Авторские обложки (SVG)</option>
+            <option value="original">Архивные оригиналы и живопись</option>
+          </select>
+        </label>
+
+        <label class="select-label">
+          <span>Автор:</span>
+          <select id="authorFilterSelect" class="toolbar-select">
+            <option value="all">Все авторы (273)</option>
+          </select>
+        </label>
+
+        <label class="select-label">
+          <span>Сортировка:</span>
+          <select id="sortSelect" class="toolbar-select">
+            <option value="index">По порядку плейлиста (#1–452)</option>
+            <option value="ready_first">Сначала скачанные MP3</option>
+            <option value="recent">Недавно прослушанные</option>
+            <option value="author">По автору (А–Я)</option>
+            <option value="title">По названию (А–Я)</option>
+            <option value="duration_desc">По длительности</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <!-- Smart Categories & Collections Explorer (Based on Description, Genre, Author & Region) -->
+    <section class="categories-explorer">
+      <div class="explorer-header">
+        <div class="explorer-modes" role="tablist">
+          <button class="explorer-mode-btn active" data-exp-mode="genre">📚 Жанровые категории</button>
+          <button class="explorer-mode-btn" data-exp-mode="theme">🕯️ Темы и сюжеты (по описанию)</button>
+          <button class="explorer-mode-btn" data-exp-mode="author_spotlight">✍️ Подборки по авторам и премиям</button>
+          <button class="explorer-mode-btn" data-exp-mode="region">🌍 Литературная география и длительность</button>
+        </div>
+        <button id="resetAllCategoriesBtn" class="btn-subtle btn-sm hidden">✕ Сбросить выбранную категорию</button>
+      </div>
+
+      <div id="categoryCardsRow" class="category-cards-row"></div>
+    </section>
+
+    <!-- Main Content Split: Catalog Grid + Active Audiobook Studio -->
+    <main class="main-workspace">
+      <section class="catalog-section">
+        <div id="catalogGrid" class="catalog-grid"></div>
+      </section>
+
+      <!-- Right Sidebar: Audiobook Player Studio, Bookmarks & LocalStorage Manager -->
+      <aside class="player-sidebar" id="playerSidebar">
+        <div class="sidebar-card active-book-panel">
+          <div class="panel-header">
+            <span class="panel-kicker">АУДИОКНИГА • ПЛЕЕР</span>
+            <span class="playback-source-badge" id="playbackSourceBadge">Ожидание выбора</span>
+          </div>
+
+          <div class="active-cover-wrap">
+            <img
+              id="playerCoverImg"
+              src="https://i.ytimg.com/vi/s5C7fP9ZxcY/hqdefault.jpg"
+              alt="Обложка аудиокниги"
+              class="active-cover-img"
+            />
+            <div class="cover-overlay-meta">
+              <span id="playerTrackIndex" class="track-index-chip">#1</span>
+              <span id="playerQualityChip" class="quality-chip">MP3 HQ 320k/VBR0</span>
+            </div>
+          </div>
+
+          <div class="active-book-titles">
+            <div class="active-genre-row">
+              <span id="playerBookGenre" class="genre-pill">Научная фантастика</span>
+              <span id="playerOriginalTitle" class="original-title-meta">Masquerade (1959)</span>
+            </div>
+            <h2 id="playerBookTitle" class="active-book-title">Маскарад</h2>
+            <div class="active-author-narrator">
+              <button id="playerBookAuthor" class="active-book-author" title="Фильтровать по этому автору">Чарльз Фрич</button>
+              <span class="narrator-tag">• Читает Евгений Стаховский</span>
+            </div>
+            <p id="playerBookDescription" class="active-book-description">
+              В канун Хэллоуина, когда улицы заполнены детьми в карнавальных масках, в дверь Сэма Вудфорда стучится странный гость, утверждающий, что он — настоящий марсианин...
+            </p>
+          </div>
+
+          <!-- Interactive Timeline with Bookmark Markers -->
+          <div class="timeline-block">
+            <div class="timeline-slider-container">
+              <input
+                id="seekSlider"
+                type="range"
+                min="0"
+                max="1000"
+                value="0"
+                step="1"
+                class="seek-slider"
+                aria-label="Позиция воспроизведения"
+              />
+              <div id="timelineBookmarkPins" class="timeline-bookmark-pins"></div>
+            </div>
+            <div class="timeline-times">
+              <span id="currentTimeLabel" class="mono-time">00:00</span>
+              <span id="remainingTimeLabel" class="mono-time muted-time">-00:00 (0%)</span>
+              <span id="durationTimeLabel" class="mono-time">00:00</span>
+            </div>
+          </div>
+
+          <!-- Transport Controls -->
+          <div class="transport-controls">
+            <button id="prevTrackBtn" class="transport-btn" title="Предыдущая аудиокнига">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+            </button>
+            <button id="skipBack30Btn" class="transport-btn skip-btn" title="Назад на 30 секунд">
+              <span>-30с</span>
+            </button>
+            <button id="skipBack15Btn" class="transport-btn skip-btn" title="Назад на 15 секунд">
+              <span>-15с</span>
+            </button>
+            <button id="playPauseBtn" class="play-main-btn" title="Воспроизвести / Пауза (Пробел)">
+              <svg id="playIcon" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              <svg id="pauseIcon" class="hidden" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            </button>
+            <button id="skipFwd15Btn" class="transport-btn skip-btn" title="Вперёд на 15 секунд">
+              <span>+15с</span>
+            </button>
+            <button id="skipFwd30Btn" class="transport-btn skip-btn" title="Вперёд на 30 секунд">
+              <span>+30с</span>
+            </button>
+            <button id="nextTrackBtn" class="transport-btn" title="Следующая аудиокнига">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+            </button>
+          </div>
+
+          <!-- Audiobook Feature Grid: Speed, Sleep Timer, Voice Boost, Offline Save -->
+          <div class="audiobook-features-grid">
+            <div class="feature-box">
+              <label for="speedSelect" class="feature-label">Скорость чтения</label>
+              <select id="speedSelect" class="feature-select">
+                <option value="0.75">0.75× (Медленно)</option>
+                <option value="0.9">0.90× (Спокойно)</option>
+                <option value="1" selected>1.00× (Оригинал)</option>
+                <option value="1.15">1.15× (Бодро)</option>
+                <option value="1.25">1.25× (Быстро)</option>
+                <option value="1.5">1.50× (Ускоренно)</option>
+                <option value="1.75">1.75× (Спринт)</option>
+                <option value="2">2.00× (Макс)</option>
+              </select>
+            </div>
+
+            <div class="feature-box">
+              <label for="sleepTimerSelect" class="feature-label">Таймер сна <span id="sleepCountdownLabel" class="sleep-countdown"></span></label>
+              <select id="sleepTimerSelect" class="feature-select">
+                <option value="0">Выключен</option>
+                <option value="15">Через 15 мин</option>
+                <option value="30">Через 30 мин</option>
+                <option value="45">Через 45 мин</option>
+                <option value="60">Через 60 мин</option>
+                <option value="end_of_track">В конце книги</option>
+              </select>
+            </div>
+
+            <button id="voiceBoostToggleBtn" class="feature-toggle-btn" title="Усиление чёткости голоса диктора и компрессия громкости (Web Audio API)">
+              <span class="toggle-indicator" id="voiceBoostDot"></span>
+              <span>🎙️ Чёткость голоса (EQ)</span>
+            </button>
+
+            <button id="toggleOfflineCurrentBtn" class="feature-toggle-btn" title="Сохранить MP3 файл в локальное хранилище браузера (IndexedDB)">
+              <span class="toggle-indicator" id="offlineCurrentDot"></span>
+              <span id="offlineCurrentBtnLabel">💾 Сохранить в браузер</span>
+            </button>
+          </div>
+
+          <div class="active-quick-actions">
+            <button id="markCompletedBtn" class="btn-subtle btn-xs">✓ Отметить прослушанной</button>
+            <a id="directMp3DownloadLink" href="#" download class="btn-subtle btn-xs">⬇ Скачать .MP3 на диск</a>
+          </div>
+        </div>
+
+        <!-- Bookmarks & Notes Card (Saved in localStorage) -->
+        <div class="sidebar-card bookmarks-panel">
+          <div class="panel-header">
+            <span class="panel-kicker">ЗАКЛАДКИ И ЗАМЕТКИ (LOCALSTORAGE)</span>
+            <span class="bookmark-count-badge" id="currentBookmarkCount">0</span>
+          </div>
+
+          <form id="addBookmarkForm" class="bookmark-form">
+            <input
+              id="bookmarkNoteInput"
+              type="text"
+              placeholder="Заметка к текущему моменту (необязательно)..."
+              maxlength="140"
+            />
+            <button type="submit" class="btn-primary btn-sm" id="addBookmarkBtn">
+              + Закладка <span id="bookmarkTimePreview" class="mono-time">00:00</span>
+            </button>
+          </form>
+
+          <div id="bookmarksList" class="bookmarks-list">
+            <div class="empty-hint">Нет закладок для этой аудиокниги. Нажмите «+ Закладка», чтобы сохранить момент.</div>
+          </div>
+
+          <div class="localstorage-footer">
+            <button id="exportProgressBtn" class="btn-link" title="Скачать JSON со всеми закладками, прогрессом чтения и историей">Экспорт прогресса (.json)</button>
+            <label class="btn-link" title="Восстановить прогресс чтения и закладки из JSON">
+              Импорт (.json)
+              <input id="importProgressInput" type="file" accept="application/json" class="hidden" />
+            </label>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Cloud Storage & Sequential Downloader Drawer Modal -->
+    <div id="cloudQueueModal" class="modal-backdrop hidden">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <div>
+            <span class="panel-kicker">GOOGLE CLOUD STORAGE (S3) & SEQUENTIAL YT-DLP ARCHIVER</span>
+            <h2 class="modal-title">Облачное хранилище и очередь MP3 (1-за-1)</h2>
+          </div>
+          <button id="closeModalBtn" class="icon-btn" aria-label="Закрыть">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="cloud-info-grid">
+            <div class="cloud-stat-card">
+              <div class="stat-label">Google Cloud Project</div>
+              <div class="stat-value mono" id="modalGcpProject">beast-trader-live</div>
+              <div class="stat-sub">Активный проект GCP</div>
+            </div>
+            <div class="cloud-stat-card">
+              <div class="stat-label">GCS Bucket (S3-совместимый)</div>
+              <div class="stat-value mono" id="modalGcsBucket">gs://dionysus-audiobooks-vault</div>
+              <div class="stat-sub" id="modalBucketStatusText">Проверка статуса...</div>
+            </div>
+            <div class="cloud-stat-card">
+              <div class="stat-label">Скачано в MP3 (HQ q=0)</div>
+              <div class="stat-value" id="modalLocalStats">0 / 99</div>
+              <div class="stat-sub">Синхронизировано в GCS: <span id="modalGcsCount">0 / 99</span></div>
+            </div>
+            <div class="cloud-stat-card">
+              <div class="stat-label">Память браузера (IndexedDB)</div>
+              <div class="stat-value" id="modalOfflineStats">0 книг (0 МБ)</div>
+              <div class="stat-sub">Доступно 100% без интернета</div>
+            </div>
+          </div>
+
+          <div class="cloud-actions-row">
+            <button id="provisionGcsBtn" class="btn-primary">
+              ☁️ Создать бакет gs://dionysus-audiobooks-vault и включить авто-выгрузку
+            </button>
+            <button id="recheckGcsBtn" class="btn-subtle">Проверить бакет GCS</button>
+            <button id="retryFailedBtn" class="btn-subtle">Повторить ошибки</button>
+            <button id="clearOfflineVaultBtn" class="btn-danger-outline">Очистить кэш браузера (IndexedDB)</button>
+          </div>
+
+          <div class="logs-section">
+            <div class="logs-header">
+              <span>Журнал последовательного загрузчика (yt-dlp + ffmpeg + Google Cloud Storage)</span>
+              <span class="mono" id="modalWorkerState">Активен</span>
+            </div>
+            <div id="workerLogsList" class="worker-logs-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <audio id="audioElement" preload="metadata" crossorigin="anonymous"></audio>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

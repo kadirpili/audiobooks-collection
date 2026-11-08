@@ -1,0 +1,5 @@
+{
+  "gmekEnforcement": {"restrictionMode": "NotRestricted"},
+  "cmekEnforcement": {"restrictionMode": "NotRestricted"},
+  "csekEnforcement": {"restrictionMode": "FullyRestricted"}
+}

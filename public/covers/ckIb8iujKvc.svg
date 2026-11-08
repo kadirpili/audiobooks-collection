@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+  <defs>
+    <linearGradient id="bg_ckIb8iujKvc" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#151b1f" />
+      <stop offset="65%" stop-color="#28363f" />
+      <stop offset="100%" stop-color="#09080c" />
+    </linearGradient>
+    <radialGradient id="glow_ckIb8iujKvc" cx="50%" cy="42%" r="48%">
+      <stop offset="0%" stop-color="#a8dadc" stop-opacity="0.28" />
+      <stop offset="100%" stop-color="#a8dadc" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="640" height="360" fill="url(#bg_ckIb8iujKvc)" />
+  <rect width="640" height="360" fill="url(#glow_ckIb8iujKvc)" />
+
+  <!-- Decorative Literary Frame -->
+  <rect x="18" y="18" width="604" height="324" rx="10" fill="none" stroke="#a8dadc" stroke-opacity="0.28" stroke-width="1.2" />
+  <rect x="24" y="24" width="592" height="312" rx="7" fill="none" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1" />
+
+  <!-- Genre & Original Title Header -->
+  <text x="320" y="50" text-anchor="middle" fill="#a8dadc" font-family="'Inter', sans-serif" font-size="11" font-weight="600" letter-spacing="2.5">ПСИХОЛОГИЧЕСКАЯ ПРОЗА</text>
+
+  <!-- Central Story Motif Artwork -->
+  
+        <path d="M240 198 L305 118 L335 118 L400 198" fill="none" stroke="#a8dadc" stroke-width="2" opacity="0.55"/>
+        <line x1="320" y1="122" x2="320" y2="202" stroke="#a8dadc" stroke-width="2" stroke-dasharray="6 5"/>
+        <circle cx="295" cy="162" r="9" fill="#a8dadc"/>
+        <circle cx="345" cy="162" r="9" fill="#a8dadc"/>
+      
+
+  <!-- Book Title & Author -->
+  <text x="320" y="262" text-anchor="middle" fill="#f7f2e7" font-family="'Cormorant Garamond', Georgia, serif" font-size="27" font-weight="700">Поездка на поезде</text>
+  <text x="320" y="326" text-anchor="middle" fill="#a8dadc" font-family="'Inter', sans-serif" font-size="13.5" font-weight="500" letter-spacing="0.8">Эрнест Хемингуэй • A Train Trip (1957)</text>
+</svg>

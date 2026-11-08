@@ -1,0 +1,13 @@
+{
+  "name": "dionysus-audiobook-cloud-player",
+  "version": "1.0.0",
+  "description": "Google Cloud Storage (S3-compatible) Audiobook Archiver & Offline-First Web Audiobook Player for YouTube Playlist PLLXLVXoZH7sne1R2RGcJSqwk5PM_yOrdy",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node server.mjs"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^7.14.0"
+  }
+}

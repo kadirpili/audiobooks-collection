@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+  <defs>
+    <linearGradient id="bg_piHg17Tb6zY" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1621" />
+      <stop offset="65%" stop-color="#3d2a45" />
+      <stop offset="100%" stop-color="#09080c" />
+    </linearGradient>
+    <radialGradient id="glow_piHg17Tb6zY" cx="50%" cy="42%" r="48%">
+      <stop offset="0%" stop-color="#e0aaff" stop-opacity="0.28" />
+      <stop offset="100%" stop-color="#e0aaff" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="640" height="360" fill="url(#bg_piHg17Tb6zY)" />
+  <rect width="640" height="360" fill="url(#glow_piHg17Tb6zY)" />
+
+  <!-- Decorative Literary Frame -->
+  <rect x="18" y="18" width="604" height="324" rx="10" fill="none" stroke="#e0aaff" stroke-opacity="0.28" stroke-width="1.2" />
+  <rect x="24" y="24" width="592" height="312" rx="7" fill="none" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1" />
+
+  <!-- Genre & Original Title Header -->
+  <text x="320" y="50" text-anchor="middle" fill="#e0aaff" font-family="'Inter', sans-serif" font-size="11" font-weight="600" letter-spacing="2.5">ИРОНИЧЕСКАЯ ЭССЕИСТИКА</text>
+
+  <!-- Central Story Motif Artwork -->
+  
+        <circle cx="320" cy="148" r="60" fill="none" stroke="#e0aaff" stroke-width="2.5"/>
+        <circle cx="320" cy="148" r="10" fill="#e0aaff"/>
+        <line x1="320" y1="88" x2="320" y2="208" stroke="#e0aaff" stroke-width="1.4" opacity="0.7"/>
+        <line x1="260" y1="148" x2="380" y2="148" stroke="#e0aaff" stroke-width="1.4" opacity="0.7"/>
+        <line x1="277" y1="105" x2="363" y2="191" stroke="#e0aaff" stroke-width="1.4" opacity="0.7"/>
+        <line x1="363" y1="105" x2="277" y2="191" stroke="#e0aaff" stroke-width="1.4" opacity="0.7"/>
+        <path d="M290 214 L320 148 L350 214" fill="none" stroke="#e0aaff" stroke-width="2.2"/>
+      
+
+  <!-- Book Title & Author -->
+  <text x="320" y="262" text-anchor="middle" fill="#f7f2e7" font-family="'Cormorant Garamond', Georgia, serif" font-size="27" font-weight="700">Женщины, верящие в карму</text>
+  <text x="320" y="326" text-anchor="middle" fill="#e0aaff" font-family="'Inter', sans-serif" font-size="13.5" font-weight="500" letter-spacing="0.8">Эудженио Монтале • Женщины, верящие в карму (1948)</text>
+</svg>
