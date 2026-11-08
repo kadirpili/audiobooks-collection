@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+  <defs>
+    <linearGradient id="bg_SvYle6oMQt0" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#210b12" />
+      <stop offset="65%" stop-color="#4a1222" />
+      <stop offset="100%" stop-color="#09080c" />
+    </linearGradient>
+    <radialGradient id="glow_SvYle6oMQt0" cx="50%" cy="42%" r="48%">
+      <stop offset="0%" stop-color="#e63946" stop-opacity="0.28" />
+      <stop offset="100%" stop-color="#e63946" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="640" height="360" fill="url(#bg_SvYle6oMQt0)" />
+  <rect width="640" height="360" fill="url(#glow_SvYle6oMQt0)" />
+
+  <!-- Decorative Literary Frame -->
+  <rect x="18" y="18" width="604" height="324" rx="10" fill="none" stroke="#e63946" stroke-opacity="0.28" stroke-width="1.2" />
+  <rect x="24" y="24" width="592" height="312" rx="7" fill="none" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1" />
+
+  <!-- Genre & Original Title Header -->
+  <text x="320" y="50" text-anchor="middle" fill="#e63946" font-family="'Inter', sans-serif" font-size="11" font-weight="600" letter-spacing="2.5">ФИЛОСОФСКИЙ ДЕКАДАНС</text>
+
+  <!-- Central Story Motif Artwork -->
+  
+        <circle cx="320" cy="146" r="56" fill="#e63946" opacity="0.28"/>
+        <path d="M245 182 Q315 130 395 112" fill="none" stroke="#f7f2e7" stroke-width="2.5"/>
+        <circle cx="295" cy="152" r="5" fill="#e63946"/>
+        <circle cx="335" cy="134" r="6" fill="#e63946"/>
+        <circle cx="368" cy="120" r="4.5" fill="#e63946"/>
+      
+
+  <!-- Book Title & Author -->
+  <text x="320" y="262" text-anchor="middle" fill="#f7f2e7" font-family="'Cormorant Garamond', Georgia, serif" font-size="27" font-weight="700">Философский дневник</text>
+<text x="320" y="292" text-anchor="middle" fill="#f7f2e7" font-family="'Cormorant Garamond', Georgia, serif" font-size="27" font-weight="700">маньяка-убийцы, жившего</text>
+<text x="320" y="322" text-anchor="middle" fill="#f7f2e7" font-family="'Cormorant Garamond', Georgia, serif" font-size="27" font-weight="700">в средние века</text>
+  <text x="320" y="326" text-anchor="middle" fill="#e63946" font-family="'Inter', sans-serif" font-size="13.5" font-weight="500" letter-spacing="0.8">Юкио Мисима • Философский дневник маньяка-убийцы, жившего в Средние века (1944)</text>
+</svg>

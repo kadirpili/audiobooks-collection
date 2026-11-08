@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+  <defs>
+    <linearGradient id="bg_AYaaDtv-6go" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1624" />
+      <stop offset="65%" stop-color="#3d2c47" />
+      <stop offset="100%" stop-color="#09080c" />
+    </linearGradient>
+    <radialGradient id="glow_AYaaDtv-6go" cx="50%" cy="42%" r="48%">
+      <stop offset="0%" stop-color="#f7b2bd" stop-opacity="0.28" />
+      <stop offset="100%" stop-color="#f7b2bd" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="640" height="360" fill="url(#bg_AYaaDtv-6go)" />
+  <rect width="640" height="360" fill="url(#glow_AYaaDtv-6go)" />
+
+  <!-- Decorative Literary Frame -->
+  <rect x="18" y="18" width="604" height="324" rx="10" fill="none" stroke="#f7b2bd" stroke-opacity="0.28" stroke-width="1.2" />
+  <rect x="24" y="24" width="592" height="312" rx="7" fill="none" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1" />
+
+  <!-- Genre & Original Title Header -->
+  <text x="320" y="50" text-anchor="middle" fill="#f7b2bd" font-family="'Inter', sans-serif" font-size="11" font-weight="600" letter-spacing="2.5">ЯПОНСКАЯ КЛАССИКА</text>
+
+  <!-- Central Story Motif Artwork -->
+  
+        <circle cx="320" cy="146" r="56" fill="#f7b2bd" opacity="0.28"/>
+        <path d="M245 182 Q315 130 395 112" fill="none" stroke="#f7f2e7" stroke-width="2.5"/>
+        <circle cx="295" cy="152" r="5" fill="#f7b2bd"/>
+        <circle cx="335" cy="134" r="6" fill="#f7b2bd"/>
+        <circle cx="368" cy="120" r="4.5" fill="#f7b2bd"/>
+      
+
+  <!-- Book Title & Author -->
+  <text x="320" y="262" text-anchor="middle" fill="#f7f2e7" font-family="'Cormorant Garamond', Georgia, serif" font-size="27" font-weight="700">Рассказы на ладони</text>
+<text x="320" y="292" text-anchor="middle" fill="#f7f2e7" font-family="'Cormorant Garamond', Georgia, serif" font-size="27" font-weight="700">(Сборник)</text>
+  <text x="320" y="326" text-anchor="middle" fill="#f7b2bd" font-family="'Inter', sans-serif" font-size="13.5" font-weight="500" letter-spacing="0.8">Ясунари Кавабата • Tenohira no Shōsetsu / Рассказы на ладони</text>
+</svg>
