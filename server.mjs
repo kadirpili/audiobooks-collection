@@ -281,70 +281,73 @@ async function saveCatalog() {
   }
 }
 
+const USE_GCS_SDK_DIRECT = Boolean(process.env.K_SERVICE || process.env.GOOGLE_APPLICATION_CREDENTIALS);
+
 // Check if GCS bucket exists and sync uploaded audiobooks inventory
 async function checkGcsBucket() {
   queueState.bucketLastChecked = new Date().toISOString();
-  try {
-    // First try via @google-cloud/storage SDK
-    const bucket = gcsClient.bucket(GCS_BUCKET_NAME);
-    const [exists] = await bucket.exists();
-    queueState.bucketExists = Boolean(exists);
-    queueState.bucketError = null;
-    if (queueState.bucketExists) {
-      try {
-        const [files] = await bucket.getFiles({ prefix: 'audiobooks/' });
-        const gcsMap = new Map();
-        for (const f of files) {
-          const m = f.name.match(/^audiobooks\/([^/]+)\.mp3$/);
-          if (m) {
-            gcsMap.set(m[1], Number(f.metadata?.size || 0));
-          }
-        }
-        let updatedCount = 0;
-        for (const item of catalog.items) {
-          if (gcsMap.has(item.id)) {
-            const sz = gcsMap.get(item.id);
-            if (!item.gcsUploaded || !item.localReady) updatedCount++;
-            item.gcsUploaded = true;
-            item.localReady = true;
-            if (sz > 10240 && !item.fileSizeBytes) item.fileSizeBytes = sz;
-          }
-        }
-        if (updatedCount > 0) {
-          await saveCatalog();
-          recalcCounts();
-        }
-      } catch (listErr) {
-        console.warn('Could not list GCS bucket objects:', listErr.message);
-      }
-    }
-    return queueState.bucketExists;
-  } catch (sdkErr) {
-    // Fallback to gcloud CLI check using active gcloud user session
+  if (USE_GCS_SDK_DIRECT) {
     try {
-      await execFileAsync(GCLOUD_BIN, [
-        'storage',
-        'buckets',
-        'describe',
-        `gs://${GCS_BUCKET_NAME}`,
-        `--project=${GCP_PROJECT_ID}`,
-        '--format=json',
-        '--quiet'
-      ]);
-      queueState.bucketExists = true;
+      const bucket = gcsClient.bucket(GCS_BUCKET_NAME);
+      const [exists] = await bucket.exists();
+      queueState.bucketExists = Boolean(exists);
       queueState.bucketError = null;
-      return true;
-    } catch (cliErr) {
-      const msg = (cliErr.stderr || cliErr.message || '').toString();
-      if (msg.includes('404') || msg.includes('not found')) {
-        queueState.bucketExists = false;
-        queueState.bucketError = `Bucket gs://${GCS_BUCKET_NAME} not created yet (awaiting confirmation).`;
-      } else {
-        queueState.bucketExists = false;
-        queueState.bucketError = msg.slice(0, 200);
+      if (queueState.bucketExists) {
+        try {
+          const [files] = await bucket.getFiles({ prefix: 'audiobooks/' });
+          const gcsMap = new Map();
+          for (const f of files) {
+            const m = f.name.match(/^audiobooks\/([^/]+)\.mp3$/);
+            if (m) {
+              gcsMap.set(m[1], Number(f.metadata?.size || 0));
+            }
+          }
+          let updatedCount = 0;
+          for (const item of catalog.items) {
+            if (gcsMap.has(item.id)) {
+              const sz = gcsMap.get(item.id);
+              if (!item.gcsUploaded || !item.localReady) updatedCount++;
+              item.gcsUploaded = true;
+              item.localReady = true;
+              if (sz > 10240 && !item.fileSizeBytes) item.fileSizeBytes = sz;
+            }
+          }
+          if (updatedCount > 0) {
+            await saveCatalog();
+            recalcCounts();
+          }
+        } catch (listErr) {
+          console.warn('Could not list GCS bucket objects:', listErr.message);
+        }
       }
-      return false;
+      return queueState.bucketExists;
+    } catch {}
+  }
+
+  // Local environment: use gcloud CLI directly (avoids 169.254.169.254 metadata timeout)
+  try {
+    await execFileAsync(GCLOUD_BIN, [
+      'storage',
+      'buckets',
+      'describe',
+      `gs://${GCS_BUCKET_NAME}`,
+      `--project=${GCP_PROJECT_ID}`,
+      '--format=json',
+      '--quiet'
+    ]);
+    queueState.bucketExists = true;
+    queueState.bucketError = null;
+    return true;
+  } catch (cliErr) {
+    const msg = (cliErr.stderr || cliErr.message || '').toString();
+    if (msg.includes('404') || msg.includes('not found')) {
+      queueState.bucketExists = false;
+      queueState.bucketError = `Bucket gs://${GCS_BUCKET_NAME} not created yet (awaiting confirmation).`;
+    } else {
+      queueState.bucketExists = false;
+      queueState.bucketError = msg.slice(0, 200);
     }
+    return false;
   }
 }
 
@@ -360,29 +363,30 @@ async function uploadToGcs(
     return { uploaded: false, reason: 'bucket_not_created' };
   }
 
-  try {
-    await gcsClient.bucket(GCS_BUCKET_NAME).upload(localFilePath, {
-      destination: destinationKey,
-      metadata: {
-        contentType,
-        cacheControl
-      }
-    });
-    return { uploaded: true, method: 'sdk' };
-  } catch {
-    // Fallback to gcloud storage cp
-    await execFileAsync(GCLOUD_BIN, [
-      'storage',
-      'cp',
-      localFilePath,
-      `gs://${GCS_BUCKET_NAME}/${destinationKey}`,
-      `--content-type=${contentType}`,
-      `--cache-control=${cacheControl}`,
-      `--project=${GCP_PROJECT_ID}`,
-      '--quiet'
-    ]);
-    return { uploaded: true, method: 'gcloud_cli' };
+  if (USE_GCS_SDK_DIRECT) {
+    try {
+      await gcsClient.bucket(GCS_BUCKET_NAME).upload(localFilePath, {
+        destination: destinationKey,
+        metadata: {
+          contentType,
+          cacheControl
+        }
+      });
+      return { uploaded: true, method: 'sdk' };
+    } catch {}
   }
+
+  await execFileAsync(GCLOUD_BIN, [
+    'storage',
+    'cp',
+    localFilePath,
+    `gs://${GCS_BUCKET_NAME}/${destinationKey}`,
+    `--content-type=${contentType}`,
+    `--cache-control=${cacheControl}`,
+    `--project=${GCP_PROJECT_ID}`,
+    '--quiet'
+  ]);
+  return { uploaded: true, method: 'gcloud_cli' };
 }
 
 // Sync catalog.json metadata to GCS bucket as well
@@ -442,6 +446,10 @@ function downloadSingleAudiobook(item) {
     const args = [
       '--js-runtimes',
       `node:${NODE_BIN}`,
+      '--remote-components',
+      'ejs:github',
+      '--concurrent-fragments',
+      '8',
       '--ffmpeg-location',
       FFMPEG_BIN,
       '--extract-audio',
@@ -554,7 +562,54 @@ function pickNextItem() {
   return null;
 }
 
-// Sequential One-by-One Worker Loop
+// Batch-upload all locally ready MP3s that haven't been uploaded to GCS yet
+async function batchUploadAllReadyToGcs() {
+  const pendingGcs = catalog.items.filter(
+    (i) => i.localReady && !i.gcsUploaded && fs.existsSync(path.join(AUDIO_DIR, `${i.id}.mp3`))
+  );
+  if (!pendingGcs.length) return;
+
+  const bucketReady = queueState.bucketExists || (await checkGcsBucket());
+  if (!bucketReady) return;
+
+  queueState.currentId = pendingGcs[0].id;
+  queueState.currentTitle = `Пакетная выгрузка ${pendingGcs.length} MP3 в Google Cloud Storage...`;
+  queueState.stage = 'uploading_gcs';
+  queueState.progressPercent = 99;
+  queueState.speed = `Batch (${pendingGcs.length} files)`;
+  broadcastStatus();
+
+  addLog(`Starting batch upload of ${pendingGcs.length} local MP3 files to gs://${GCS_BUCKET_NAME}/audiobooks/...`);
+
+  const CHUNK_SIZE = 30;
+  for (let i = 0; i < pendingGcs.length; i += CHUNK_SIZE) {
+    const chunk = pendingGcs.slice(i, i + CHUNK_SIZE);
+    const filePaths = chunk.map((item) => path.join(AUDIO_DIR, `${item.id}.mp3`));
+    await execFileAsync(GCLOUD_BIN, [
+      'storage',
+      'cp',
+      ...filePaths,
+      `gs://${GCS_BUCKET_NAME}/audiobooks/`,
+      '--no-clobber',
+      `--project=${GCP_PROJECT_ID}`,
+      '--quiet'
+    ]);
+    const nowIso = new Date().toISOString();
+    for (const item of chunk) {
+      item.gcsUploaded = true;
+      item.gcsUploadedAt = nowIso;
+      broadcastEvent('item_updated', item);
+    }
+    await saveCatalog();
+    broadcastStatus();
+    addLog(`Batch uploaded ${Math.min(i + CHUNK_SIZE, pendingGcs.length)}/${pendingGcs.length} MP3s to Google Cloud S3.`);
+  }
+
+  await syncCatalogToGcs();
+  addLog(`All ${pendingGcs.length} MP3s and catalog.json synced to gs://${GCS_BUCKET_NAME}!`);
+}
+
+// Sequential One-by-One Worker Loop (Phase 1: Download All Locally -> Phase 2: Batch Upload to GCS)
 let workerActive = false;
 async function runSequentialWorker() {
   if (workerActive) return;
@@ -564,8 +619,36 @@ async function runSequentialWorker() {
   broadcastStatus();
 
   while (queueState.running) {
-    const item = pickNextItem();
+    // Phase 1: Pick next un-downloaded local item first
+    let item = null;
+    while (queueState.priorityIds.length > 0) {
+      const pid = queueState.priorityIds.shift();
+      const found = catalog.items.find((i) => i.id === pid);
+      if (found && !found.localReady) {
+        item = found;
+        break;
+      }
+    }
+
+    if (!item && !queueState.paused) {
+      item = catalog.items.find((i) => !i.localReady && !i.error) || null;
+    }
+
     if (!item) {
+      // All local downloads finished! Run Phase 2: Batch upload all ready local MP3s to GCS
+      const hasPendingGcs =
+        !queueState.paused &&
+        queueState.bucketExists &&
+        catalog.items.some((i) => i.localReady && !i.gcsUploaded);
+
+      if (hasPendingGcs) {
+        try {
+          await batchUploadAllReadyToGcs();
+        } catch (err) {
+          addLog(`Batch GCS upload error: ${err.message}`, 'error');
+        }
+      }
+
       queueState.currentId = null;
       queueState.currentTitle = null;
       queueState.stage = queueState.paused ? 'on_demand' : 'idle';
@@ -578,37 +661,16 @@ async function runSequentialWorker() {
     }
 
     try {
-      if (!item.localReady) {
-        addLog(`Starting sequential download [${item.index}/${catalog.items.length}]: "${item.title}" — ${item.author}`);
-        await downloadSingleAudiobook(item);
-        addLog(
-          `Downloaded MP3 [${item.index}/${catalog.items.length}]: "${item.title}" (${(
-            item.fileSizeBytes /
-            (1024 * 1024)
-          ).toFixed(1)} MB)`
-        );
-      }
-
-      // If GCS bucket is available, immediately upload to Google Cloud Storage
-      if (queueState.bucketExists && item.localReady && !item.gcsUploaded) {
-        queueState.currentId = item.id;
-        queueState.currentTitle = `${item.title} — ${item.author}`;
-        queueState.stage = 'uploading_gcs';
-        queueState.progressPercent = 99;
-        queueState.speed = 'GCS Upload';
-        broadcastStatus();
-
-        const mp3Path = path.join(AUDIO_DIR, `${item.id}.mp3`);
-        const res = await uploadToGcs(mp3Path, item.gcsObjectKey, 'audio/mpeg');
-        if (res.uploaded) {
-          item.gcsUploaded = true;
-          item.gcsUploadedAt = new Date().toISOString();
-          addLog(`Uploaded to Google Cloud Storage: ${item.gcsUri}`);
-        }
-      }
+      addLog(`Starting sequential download [${item.index}/${catalog.items.length}]: "${item.title}" — ${item.author}`);
+      await downloadSingleAudiobook(item);
+      addLog(
+        `Downloaded MP3 [${item.index}/${catalog.items.length}]: "${item.title}" (${(
+          item.fileSizeBytes /
+          (1024 * 1024)
+        ).toFixed(1)} MB)`
+      );
 
       await saveCatalog();
-      await syncCatalogToGcs();
       broadcastEvent('item_updated', item);
       broadcastStatus();
     } catch (err) {
@@ -619,8 +681,8 @@ async function runSequentialWorker() {
       broadcastStatus();
     }
 
-    // Polite pause between sequential downloads (one by one)
-    await new Promise((r) => setTimeout(r, 1500));
+    // Brief pause between downloads
+    await new Promise((r) => setTimeout(r, 500));
   }
 
   workerActive = false;
