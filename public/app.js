@@ -1602,6 +1602,13 @@ async function initApp() {
   let data = null;
   if (IS_STATIC_HOST) {
     try {
+      const gcsCatalogResp = await fetch(`${GCS_PUBLIC_BASE}/catalog/catalog.json?t=${Date.now()}`);
+      if (gcsCatalogResp.ok) data = await gcsCatalogResp.json();
+    } catch {}
+  }
+
+  if (!data && IS_STATIC_HOST) {
+    try {
       const staticResp = await fetch('./catalog.json');
       if (staticResp.ok) data = await staticResp.json();
     } catch {}

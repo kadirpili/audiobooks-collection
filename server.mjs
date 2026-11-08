@@ -57,10 +57,10 @@ let catalog = {
 
 let queueState = {
   running: true,
-  paused: true, // Do NOT download all by default; download on-demand when requested or when auto-queue is enabled
+  paused: process.env.AUTO_DOWNLOAD_PAUSED === 'true', // Download all sequentially one by one and upload to GCS S3
   currentId: null,
   currentTitle: null,
-  stage: 'on_demand', // 'on_demand' | 'idle' | 'downloading' | 'converting' | 'uploading_gcs' | 'paused'
+  stage: 'idle', // 'on_demand' | 'idle' | 'downloading' | 'converting' | 'uploading_gcs' | 'paused'
   progressPercent: 0,
   speed: '',
   eta: '',
@@ -273,7 +273,9 @@ async function saveCatalog() {
   if (saveLock) return;
   saveLock = true;
   try {
-    await fsp.writeFile(CATALOG_PATH, JSON.stringify(catalog, null, 2), 'utf8');
+    const jsonStr = JSON.stringify(catalog, null, 2);
+    await fsp.writeFile(CATALOG_PATH, jsonStr, 'utf8');
+    await fsp.writeFile(path.join(PUBLIC_DIR, 'catalog.json'), jsonStr, 'utf8');
   } finally {
     saveLock = false;
   }
@@ -347,7 +349,12 @@ async function checkGcsBucket() {
 }
 
 // Upload a single file to Google Cloud Storage
-async function uploadToGcs(localFilePath, destinationKey, contentType = 'audio/mpeg') {
+async function uploadToGcs(
+  localFilePath,
+  destinationKey,
+  contentType = 'audio/mpeg',
+  cacheControl = 'public, max-age=31536000'
+) {
   const bucketReady = queueState.bucketExists || (await checkGcsBucket());
   if (!bucketReady) {
     return { uploaded: false, reason: 'bucket_not_created' };
@@ -358,7 +365,7 @@ async function uploadToGcs(localFilePath, destinationKey, contentType = 'audio/m
       destination: destinationKey,
       metadata: {
         contentType,
-        cacheControl: 'public, max-age=31536000'
+        cacheControl
       }
     });
     return { uploaded: true, method: 'sdk' };
@@ -370,6 +377,7 @@ async function uploadToGcs(localFilePath, destinationKey, contentType = 'audio/m
       localFilePath,
       `gs://${GCS_BUCKET_NAME}/${destinationKey}`,
       `--content-type=${contentType}`,
+      `--cache-control=${cacheControl}`,
       `--project=${GCP_PROJECT_ID}`,
       '--quiet'
     ]);
@@ -381,7 +389,7 @@ async function uploadToGcs(localFilePath, destinationKey, contentType = 'audio/m
 async function syncCatalogToGcs() {
   if (!queueState.bucketExists) return;
   try {
-    await uploadToGcs(CATALOG_PATH, 'metadata/catalog.json', 'application/json');
+    await uploadToGcs(CATALOG_PATH, 'catalog/catalog.json', 'application/json', 'no-cache, max-age=0');
   } catch (err) {
     console.warn('Could not sync catalog.json to GCS:', err.message);
   }
